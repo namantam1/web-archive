@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Archive, ArchiveCompression, ArchiveFormat } from 'libarchive.js';
+  import { Archive } from 'libarchive.js';
+  import { Zip, ZipPassThrough } from 'fflate';
   import FileList from './FileList.svelte';
   import type { FileEntry } from './types';
 
@@ -111,37 +112,39 @@
       if (password) await freshArchive.usePassword(password);
       const extractedContent = await freshArchive.extractFiles();
 
-      const filesToWrite: any[] = [];
+      const chunks: ArrayBuffer[] = [];
 
-      for (const entry of selectedFiles) {
-        const file = findFileInTree(extractedContent, entry.path);
-        if (file) {
-          filesToWrite.push({ file, pathname: entry.path });
-        }
-      }
+      const blob: Blob = await new Promise((resolve, reject) => {
+        const zip = new Zip((err, chunk, final) => {
+          if (err) { reject(err); return; }
+          chunks.push(chunk.buffer as ArrayBuffer);
+          if (final) {
+            resolve(new Blob(chunks, { type: 'application/zip' }));
+          }
+        });
 
-      if (filesToWrite.length === 0) {
-        error = 'Could not find selected files';
-        loading = false;
-        return;
-      }
-
-      const archiveFile = await Archive.write({
-        files: filesToWrite as any,
-        outputFileName: 'selected-files.zip',
-        compression: ArchiveCompression.NONE,
-        format: ArchiveFormat.ZIP,
-        passphrase: null,
+        (async () => {
+          for (const fileEntry of selectedFiles) {
+            const file = findFileInTree(extractedContent, fileEntry.path);
+            if (!file) continue;
+            const buffer = await file.arrayBuffer();
+            const entry = new ZipPassThrough(fileEntry.path);
+            zip.add(entry);
+            entry.push(new Uint8Array(buffer), true);
+          }
+          zip.end();
+        })().catch(reject);
       });
 
-      const url = URL.createObjectURL(archiveFile);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'selected-files.zip';
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      error = e.message || 'Failed to download selected files';
+      console.error('Download selected files error:', e);
+      error = e?.message || String(e) || 'Failed to download selected files';
     } finally {
       loading = false;
     }
