@@ -157,7 +157,6 @@
   <div class="upload-section">
     <input
       type="file"
-      accept=".zip,.rar,.7z,.tar,.tar.gz,.tar.bz2,.tar.xz,.tgz"
       onchange={handleFileUpload}
     />
   </div>
