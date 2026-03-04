@@ -4,7 +4,7 @@
   import FileList from './FileList.svelte';
   import type { FileEntry } from './types';
 
-  Archive.init({ workerUrl: '/worker-bundle.js' });
+  Archive.init({ workerUrl: 'worker-bundle.js' });
 
   let archive = $state<any>(null);
   let uploadedFile = $state<File | null>(null);

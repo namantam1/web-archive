@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Archive, ArchiveCompression, ArchiveFormat } from 'libarchive.js';
 
-  Archive.init({ workerUrl: '/worker-bundle.js' });
+  Archive.init({ workerUrl: 'worker-bundle.js' });
 
   let fileInput = $state<HTMLInputElement>();
   let selectedFiles = $state<File[]>([]);
